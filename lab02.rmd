@@ -1,0 +1,206 @@
+---
+title: "ST443 Lab02/pc"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Linear regression
+
+We follow Section 3.6 of ISLR
+
+- Simple linear regression (SLR)
+- multiple linear regression (MLR)
+- inference for regression
+- diagnostic checking
+
+We will analyse some data in the MASS and ISLR packages. 
+
+```{r cars}
+# install.packages("MASS")
+# install.packages("ISLR")
+
+library(MASS)
+library(ISLR)
+```
+
+## 1. Simple Linear Regression
+
+Load the Boston Housing data (that is in MASS), and
+
+- look at the documentation of the data
+- look at the list of variables in the data
+- regress _medv_ on _lstat_ and interpret the summary results
+- output the confidence intervals of the coefficients and interpret
+- output the confidence interval and prediction interval for $E(medv)$ given a new input 
+
+```{r}
+reg <- lm(medv ~ lstat, data = Boston)
+
+confint(reg, "(Intercept)", level = 0.95)
+confint(reg, "lstat", level = 0.95)
+
+new_data <- data.frame(lstat = 8:15)
+predict.lm(reg, new_data)
+```
+
+Predictive values, confidence intervals and prediction intervals for the prediction of _medv_ for a given value of _lstat_
+$CI(\hat{y}_i)  = CI(\hat{\beta}_0 + x_i \cdot \hat{\beta}_1)$,
+$PI(\hat{y}_i)  = CI(\hat{\beta}_0 + x_i \cdot \hat{\beta}_1 + e_i)$,
+
+```{r}
+
+```
+
+**Activity 1**
+Repeat the demo by regressing _medv_ against another continuous predictor.
+
+```{r}
+#Code
+
+reg <- lm(medv ~ tax, data = Boston)
+
+confint(reg, "tax", level = 0.95)
+confint(reg, "(Intercept)", level = 0.95)
+```
+
+
+
+## 1.2 Diagnostic checks
+Under the standard assumptions, OLS estimator is BLUE, and with the normality assumption included OLS is BUE, and the t and F tests are exact.
+
+Assumptions: "NICE": normality, independent, constant variance, $E{(e)} = 0$ + no influential points
+
+
+The basic plot is the residual plot - it plots the (standardized) residuals vs fitted values or on the predictor(s).
+```{r}
+
+```
+
+Any of the following in the residual plot suggests the model can be improved:
+-(regression) outliers as these may be influential points
+- some pattern. This means omission of some relevant Xs, function form for $E(Y|x)$ is not appropriate
+- residuals do not fall in a band around zero. This means the assumption of constant variance of error term is not met. We call this heteroscasticity.
+
+Is the error term normally distributed? We can get some idea using the normal QQ-plot or histogram
+
+```{r}
+
+```
+
+The function `plot.lm' gathers together 6 diagnostic plots. Not all are popularly used.
+
+```{r}
+
+```
+
+
+**Activity 2**
+For the model in Activity 1, examine the diagnostic plots
+```{r}
+#code
+```
+
+
+
+## 3.  Multiple Linear Regression
+In this demo:
+- fit a MLR on a set of Xs
+- fit a MLR on all the Xs (short-cut)
+- compare two nested models using the F-test
+- add an interaction term
+
+Let's say we want to regress _medv_ on _lstat_ and _age_. 
+
+```{r}
+
+```
+
+Say we wish to include the interaction of _ptratio_ and _tax_.
+
+```{r}
+
+```
+
+**Activity 3**
+1. Fit a MLR of _medv_ on some of the predictors. Think about what are the sensible predictors to include. 
+2. Think also what 2 way interaction term may be present, and include this in the model. Interpret the interaction term. Is it statistically significant?
+```{r}
+#code
+
+```
+
+
+## 4. Variables Transformation
+
+Is there a diminishing return on price with the number of bedrooms? We can see if there is such a phenomenon by including a squared term of `rm'.
+
+`I()` is required to isolate the transformation on `rm'. `I()` inhibits the interpretation of operators such as "+", "-", "*" and "^" as formula operators when the appear to the right of ~ in `lm', so they are used as arithmetical operators.
+
+```{r}
+
+```
+
+**Activity 4**
+1. What is the min and max number of bedrooms for a property in the data?
+2. Conduct a statistical test to determine whether there is support of a dimishing effect on _medv_ with `rm'.`
+
+```{r}
+#code
+
+```
+
+
+## 5 Categorical Predictors
+
+Categorical predictors, known as factors in R, may be included in regression. A regression model can contain a mix of continuous and factors.
+
+The Carseat data in ISLR is simulated data set containing sales of child car seats at 400 different stores.
+
+```{r}
+?Carseats
+str(Carseats)
+```
+
+There are 3 factors. By default factors go into a regression as a set of levels, where one level is treated as the reference/baseline level. By default the reference level is the one that comes first when the levels are arranged in alphabetical order.
+
+Can use `constrasts' to check.
+
+```{r}
+
+
+```
+Let's run a MLR including the factor `Urban'.
+
+```{r}
+
+```
+
+**Activity 5**
+1. Fit a MLR for _sales_ including one or more factors. Look at the sign of the estimated coefficient on the level(s) of the factor. Is this the sign you woud expect?
+2. Include a 2 way interaction where the Xs are both factors. Try it with `Urban' and `US' as both these have 2 levels so will be eaier to interpret. 
+
+
+## 6. Writing Functions
+```{r}
+f1 = function(x){
+  d = median(x) - mean(x)
+  d
+  #return(d)
+}
+f1(x = c(1,2,6))
+```
+
+```{r}
+# LoadLibraries
+# LoadLibraries()
+LoadLibraries = function() {
+  library(ISLR)
+  library(MASS)
+  print("The libraries have been loaded.")
+}
+LoadLibraries
+LoadLibraries()
+```

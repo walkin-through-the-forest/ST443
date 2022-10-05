@@ -1,0 +1,213 @@
+---
+title: "ST443 Lab1 /pc"
+date: '2022'
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Topics:
+- Vectors and matrices
+- Loading data
+- Basic plots
+- Sampling from standard distributions and Monte Carlo calculations
+
+
+# Vectors and matrices
+
+First create a 1d array.
+We create an object associated with this array.
+
+The name of an object in R cannot being with: a number or special character. R is case sensitive.
+
+
+```{r}
+```
+Let's create:
+
+-two vectors and do some arithmetic with them.
+-create matrix
+
+
+```{r}
+a <- c(1, 2, 3)
+b <- c(4, 5, 6)
+print(a + b)
+```
+
+Housekeeping: `rm' to remove objects`
+
+```{r}
+rm(a, b)
+```
+
+## Activity
+
+1. Run the following chunk:
+
+```{r}
+
+A <- matrix(c(1,2,3,4),2,2,byrow=TRUE)
+t(A) 
+```
+
+What does the function `t` do?
+
+Finds the transpose of a matrix.
+
+# Indexing Data
+```{r}
+
+```
+
+
+# Loading Data
+```{r}
+
+```
+
+
+
+# Graphical and Numerical Summaries
+
+
+
+```{r}
+
+```
+
+
+# Contour plots
+```{r}
+plot(x,y)
+plot(x,y,xlab="X Variable", ylab="Y Variable", main="Plot of X vs Y",pch=20)
+x=seq(1,10)
+x
+x=1:10
+x
+x=seq(-pi,pi,length=50)
+y=x
+f=outer(x,y,function(x,y)cos(y)/(1+x^2))
+contour(x,y,f)
+contour(x,y,f,nlevels=15,add=T)
+fa=(f-t(f))/2
+contour(x,y,fa,nlevels=15)
+image(x,y,f)
+image(x,y,fa)
+persp(x,y,f)
+persp(x,y,fa)
+persp(x,y,fa,theta=30)
+persp(x,y,fa,theta=30,phi=20)
+persp(x,y,fa,theta=30,phi=70)
+```
+
+# Sampling from standard distributions
+
+`rnorm' to sample from a standard normal density function.
+
+Recall the Pearson correlation measures the strength of linear relationshiop between 2 quantitative variables, and takes values [-1,1].
+
+Task: Create 2 variables: 50 observations from $X \sim N(0,1)$, and $Y=X+N(50,0.1^2)$
+Then compute the (Pearson's) correlation.
+
+```{r}
+X <- rnorm(n = 50)
+Y <- X + rnorm(n = 50, mean = 50, sd = 0.1)
+R <- cor(X, Y)
+```
+
+The following commands can be used to generate from various distributions
+
+Uniform: `runif(n, min=0, max=1)`
+
+Normal: `rnorm(n, mean = 0, sd = 1)`
+
+Beta: `rbeta(n, shape1, shape2)`
+
+Gamma / chi-square / Exponential: `rgamma(n, shape, rate = 1)` Note: scale = 1/rate rpois(n, lambda)
+
+Binomial/Bernoulli: `rbinom(n, size, prob)`
+
+Negative Binomial: `rnbinom(n, size, prob)`
+
+Poisson: rpois(n,lambda)
+
+## Activity
+Probability density/mass functions, Cumulative density functions and quantile functions are also available. Check the result of
+
+```{r}
+dnorm(0) 
+dnorm(0)*sqrt(2*pi)
+qnorm(0.975) 
+pnorm(1.96)
+```
+
+## Monte Carlo calculations in the case of Uniform(0,1)
+
+Generate 20 points from the Uniform(0,1) distribution. Calculate the sample mean, median, variance and provide a 95% interval by computing the 2.5% and 97.5% percentiles. Repeat with 10000 points and compare the results with the true values of the calculated quantities. 
+
+The true values are mean$=0.5$, median$=0.5$, and variance $=1/12=0.08333333$. 
+
+The support is defined by the two parameters, a=0 and b=1, which are its minimum and maximum values.
+
+
+```{r}
+sample <- runif(n = 20, min = 0, max = 1)
+mean(sample)
+median(sample)
+var(sample)
+quantile(sample, c(0.025, 0.975))
+
+sample <- runif(n = 10000, min = 0, max = 1)
+mean(sample)
+median(sample)
+var(sample)
+quantile(sample, c(0.025, 0.975))
+```
+
+## Activity
+Repeat the demonstration of the Monte Carlo method with different distributions.
+```{r}
+#Your code
+
+```
+
+
+## Activity
+
+This exercise involves the Boston housing data set which is
+part of the MASS library in R. You can read about it typing `?Boston` after loading the library. To load and view part of it use the following commands:
+
+```{r}
+library(MASS)
+head(Boston)
+```
+
+
+(a) How many rows are in this data set? How many columns? What do the rows and columns represent?
+
+(b) Make some pairwise scatterplots of the predictors (columns) in this data set. Describe your findings.
+
+(c) Are any of the predictors associated with per capita crime rate? If so, explain the relationship.
+
+(d) Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.
+
+(e) How many of the suburbs in this data set bound the Charles river?
+
+(f) What is the median pupil-teacher ratio among the towns in this data set?
+
+(g) Which suburb of Boston has lowest median value of owner- occupied homes? What are the values of the other predictors for that suburb, and how do those values compare to the overall ranges for those predictors? Comment on your findings.
+
+(h) In this data set, how many of the suburbs average more than seven rooms per dwelling? More than eight rooms per dwelling? Comment on the suburbs that average more than eight rooms per dwelling.
+
+```{r}
+nrow(Boston)
+pairs(Boston)
+```
+
+
+
