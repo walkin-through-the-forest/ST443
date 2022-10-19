@@ -1,0 +1,249 @@
+---
+title: "ST443 Week 4"
+output: html_notebook
+---
+# Topics
+- Cross validation
+- Bootstrap
+
+## Cross validation
+```{r}
+library(ISLR) # this will load up a dataset called 'Auto' in the package
+plot(mpg ~ horsepower, data = Auto)
+```
+
+Randomly split the full data into 1/2 training, 1/4 validation and 1/4 testing.
+```{r}
+dim(Auto)
+set.seed(2022)
+n <- nrow(Auto)
+shuffle <- sample(n) # generate a random permutation
+Auto_train <- Auto[shuffle[1:(n/2)], ]
+Auto_validate <- Auto[shuffle[(n/2+1):(3*n/4)], ]
+Auto_test <- Auto[shuffle[(3*n/4+1):n], ]
+dim(Auto_train)
+```
+
+
+linear model: regress mpg on horsepower using training data set.
+```{r}
+Auto_lm <- lm(mpg ~ horsepower, data = Auto_train)
+summary(Auto_lm)
+```
+MSE on the validation set
+```{r}
+pred <- predict(Auto_lm, newdata=Auto_validate)
+MSE <- function(u, v){
+  return(mean((u - v)^2))
+}
+MSE(pred, Auto_validate$mpg)
+```
+
+Let’s add in an additional quadratic term. We use poly() function to estimate the test error for the polynomial regressions. In other words, lm(mpg ~ poly(horsepower, 2)) is identical to lm(mpg ~ horsepower + I(horsepower^2)).
+```{r}
+Auto_lm2 <- lm(mpg ~ poly(horsepower, 2), data = Auto_train)
+pred <- predict(Auto_lm2, newdata=Auto_validate)
+MSE(pred, Auto_validate$mpg)
+```
+
+We can do this for arbitrary degree polynomials.
+```{r}
+max_deg <- 10
+MSE_train <- rep(0, max_deg) # training error for up to degree 10 polynomial fit.
+MSE_validate <- rep(0, max_deg) # validation error 
+for (deg in 1:max_deg){
+  Auto_poly = lm(mpg ~ poly(horsepower, deg), data=Auto_train)
+  
+  pred_train <- predict(Auto_poly, newdata=Auto_train)
+  pred_validate <- predict(Auto_poly, newdata=Auto_validate)
+  
+  MSE_train[deg] <- MSE(pred_train, Auto_train$mpg)
+  MSE_validate[deg] <- MSE(pred_validate, Auto_validate$mpg)
+}
+plot(c(0,max_deg), range(c(MSE_train, MSE_validate)), type='n', 
+     xlab='deg', ylab='MSE')
+points(1:max_deg, MSE_train, col='blue', type='b')
+points(1:max_deg, MSE_validate, col='orange', type='b')
+```
+Compute test error.
+```{r}
+best_deg <- which.min(MSE_validate)
+Auto_poly <-  lm(mpg ~ poly(horsepower, best_deg), data=Auto_train)
+pred_test <- predict(Auto_poly, newdata=Auto_test)
+MSE(pred_test, Auto_test$mpg)
+```
+
+**Activity 1**
+Repeat the above for another dataset e.g. the Boston Housing data in MASS package.
+
+```{r}
+library(MASS)
+str(Boston)
+```
+
+## Leave-one-out cv (LOOCV)
+In cross validation, we no longer need to set aside a separate validation set (it will be chosen from the training set repeatedly). Let’s first merge the training and validation set.
+
+```{r}
+library(boot) #for cv.glm
+Auto_train <- rbind(Auto_train, Auto_validate)
+dim(Auto_train)
+Auto_glm <- glm(formula = mpg ~ horsepower, data = Auto_train)
+```
+cv.glm() can be used to perform cv, if we use glm() to fit a model without passing in the family argument, then it performs linear regression like lm() function. The ret$delta object contains two entries, the first is the cross-validated error and the second an adjustment of the first taking into account the smaller sample size left for training after chosen the validation set within.
+
+```{r}
+ret <- cv.glm(Auto_train, Auto_glm) #What is the value of k in k-fold CV?
+ret$delta
+```
+The implementation of cv.glm can be slow for linear models as it does not use the LOOCV formula (5.2) on page 180 in ISLR.
+
+$\text{CV}_{n} = \frac{1}{n}\sum_{i=1}^n \left(\frac{y_i-\hat{y}_i}{1-h_i}\right)^2$
+
+We can write our own implementation to speed things up.
+
+```{r}
+loocv <- function(fit) {
+  h = lm.influence(fit)$hat
+  mean((residuals(fit) / (1 - h)) ^ 2)
+}
+loocv(Auto_glm)
+```
+
+`lm.influence` provides the basic quantities which are used in forming a wide variety of diagnostics for checking the quality of regression fits, and one of its attributes is hat - the leverage values.
+
+
+We can repeat this procedure for increasingly complex polynomial fits.
+To automate the process, we use the for() function to initiate a for loop for()
+for loop which iteratively fits polynomial regressions for polynomials of order i = 1
+to i = 5, computes the associated cross-validation error, and stores it in
+the ith element of the vector cv.error.
+
+```{r}
+max_degree <- 5
+cv_error1 = rep(0, 5)
+cv_error2 = rep(0, 5)
+cv_error5 = rep(0, 5)
+
+for (deg in max_degree) {
+  glm_fit <-  glm(mpg ~ poly(horsepower, deg), data = Auto)
+  ## CV errors using formula (5.2)
+  cv_error1[deg] = loocv(glm_fit)
+  ## CV errors using naive LOOCV
+  cv_error2[deg] = cv.glm(Auto, glm_fit)$delta[1]
+  ## CV errors using K-fold-CV
+  cv_error5[deg] = cv.glm(Auto, glm_fit, K = 5)$delta[1]
+  # you can try 5 fold CV by setting `K=5` in `cv_glm` function
+}
+```
+Note the value of K is the number of groups which the data should be split to estimate the CV error, by default `K=n`, i.e. LOOCV.
+
+Plot the cv errors v.s. degree of the polynomial:
+```{r}
+degree <- 1:max_degree
+plot(degree, cv_error1, type = "b")
+lines(degree, cv_error2, col = "red")
+lines(degree, cv_error5, type = "b", col = "blue")
+```
+
+**Activity 1**
+Repeat the above with a different set of predictors.
+```{r}
+
+```
+
+## Bootstrap
+
+Recall the bootstrap is a tool that quantifies the uncertainty associated with a given estimator or statistical learning method.
+
+Performing a bootstrap analysis in R entails only two steps.
+First, we must create a function that computes the statistic of interest.
+Second, we use `boot`, which is part of the boot library to perform the bootstrap by repeatedly sampling observations from the data with replacement.
+
+The `Portfolio` data set is in the ISLR package described in Section 5.2.
+Suppose that we wish to invest a fixed sum of money in two financial
+assets that yield returns of X and Y , respectively, where X and Y are
+random quantities. We will invest a fraction α of our money in X, and will
+invest the remaining 1 − α in Y . Since there is variability associated with
+the returns on these two assets, we wish to choose α to minimize the total
+risk, or variance, of our investment. The expression for estimated  α is in (5.7).
+
+The aim is to estimate the variability of the estimate of α. 
+
+```{r}
+str(Portfolio)
+```
+
+
+
+To illustrate the use of the bootstrap on this data, we must first create:
+
+- a function, `alpha_fn()` that takes as input the (X,Y) data and returns an estimate of alpha using the estimator (5.7) to the observations corresponding to the rows of the data `index`.
+- a vector indicating which observations should be used to estimate $\alpha$. Note that $\alpha = \min \text{var}[\alpha X + (1 - \alpha Y)]$.
+
+
+
+```{r}
+alpha_fn = function(data, index) {
+  X = data$X[index]
+  Y = data$Y[index]
+  # solution of alpha s.t. min. var
+  alpha = (var(Y) - cov(X, Y)) / (var(X) + var(Y) - 2 * cov(X, Y))
+  return(alpha)
+}
+```
+
+randomly select 100 observations from 1 to 100 with replacement, i.e. construct a new bootstrap data and compute the corresponding alpha
+```{r}
+set.seed(1)
+alpha_fn(data = Portfolio, index = sample(1:100, size = 100, replace = T))
+```
+We can implement a bootstrap analysis by performing this command many
+times, recording all of the corresponding estimates for α, and computing the resulting standard deviation.
+
+Bootstrap using `for` loop:
+```{r}
+B <- 1000
+boot_alpha = rep(0, B)
+for(i in 1:B){
+  boot_index = sample(x = 1:100, size = 100, replace = T)
+  boot_alpha[i] = alpha_fn(data = Portfolio, index = boot_index)
+}
+mean(boot_alpha); sd(boot_alpha)
+```
+
+`boot` automates this approach. To produce 1000 bootstrap estimates for alpha
+```{r}
+boot(Portfolio, alpha_fn, R = 1000)
+```
+
+
+### Estimating the accuracy of a linear regression model
+```{r}
+boot_fn = function(data, index) {
+  coef(lm(mpg ~ horsepower, data = data, subset = index))
+}
+```
+
+This returns the intercept and slope estimates for the linear regression model
+```{r}
+boot_fn(Auto, 1:392)
+set.seed(1234)
+boot_fn(Auto, sample(392, 392, replace = T))
+```
+
+Now we use `boot()` to compute the standard errors of 1000 bootstrap estimates for the intercept and slope
+```{r}
+boot(Auto, boot_fn, R = 1000)
+```
+
+Compare with standard formula results for the regression coefficients in a linear model
+```{r}
+summary(lm(mpg ~ horsepower, data = Auto))$coef
+```
+What can you conclude from the different results?
+
+The results from the bootstrap are more reliable since they do not rely on model assumptions (read p196).
+
+**Activity 2**
+Redo everything for polynomial regression with `degree=2`
